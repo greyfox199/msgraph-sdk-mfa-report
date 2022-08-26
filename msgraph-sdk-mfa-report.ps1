@@ -112,14 +112,32 @@ try {
 }
 
 if ($successfullyConnected) {
+
     $users = get-mguser -all
     foreach ($user in $users) {
     write-host $user.UserprincipalName
+    
+    #possible values: microsoftAuthenticatorAuthenticationMethod, phoneAuthenticationMethod, passwordAuthenticationMethod, 
+    #fido2AuthenticationMethod, windowsHelloForBusinessAuthenticationMethod, emailAuthenticationMethod, temporaryAccessPassAuthenticationMethod, 
+    #passwordlessMicrosoftAuthenticatorAuthenticationMethod, softwareOathAuthenticationMethod
     $userMFAMethods = Get-MgUserAuthenticationMethod -userid $user.Id
     #Get-MgReportAuthenticationMethodUserRegistrationDetail -Filter "UserprincipalName eq '$($user.UserprincipalName)'"
-    $userMFaRegistrationDetails = Get-MgReportAuthenticationMethodUserRegistrationDetail -Filter "UserprincipalName eq '$($user.UserprincipalName)'"
+    #$userMFaRegistrationDetails = Get-MgReportAuthenticationMethodUserRegistrationDetail -Filter "UserprincipalName eq '$($user.UserprincipalName)'"
 
-    write-host $userMFaRegistrationDetails.IsMfaRegistered
+    #Get-MgReportAuthenticationMethodUserRegistrationDetail -Filter "UserprincipalName eq '$($user.UserprincipalName)'"
+
+    #write-host $userMFaRegistrationDetails.IsMfaRegistered
+
+    #https://docs.microsoft.com/en-us/graph/api/resources/userregistrationdetails?view=graph-rest-beta for documentation
+    #
+    $Uri = "https://graph.microsoft.com/beta/reports/authenticationMethods/userRegistrationDetails/" + $User.Id
+    $AccessMethodData = Invoke-MgGraphRequest -Uri $Uri -Method Get
+    
+    #possible values: none, mobilePhone, alternateMobilePhone, officePhone, microsoftAuthenticatorPush, 
+    #softwareOneTimePasscode, unknownFutureValue
+    write-host $AccessMethodData.isMfaRegistered
+    write-host $AccessMethodData.defaultMfaMethod
+    write-host $AccessMethodData.MethodsRegistered
 
     foreach ($method in $userMFAMethods) {
         foreach ($types in $method.AdditionalProperties["@odata.type"]) {
