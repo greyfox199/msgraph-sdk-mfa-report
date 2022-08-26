@@ -29,6 +29,8 @@ try {
 [string] $tenantID = ""
 [string] $reportDir = ""
 [bool] $writeToLog = $false
+[string] $fileTimeStamp = $(get-date -f yyyy-MM-dd-hh_mm_ss)
+
 
 #function to write log file
 Function LogWrite($objLogFile, [string]$strLogstring, [bool]$DisplayInConsole=$true)
@@ -72,6 +74,11 @@ if ($PowerShellObject.Required.clientSecretFilePath) {
 if ($PowerShellObject.Required.reportDirectory) {
     if (Test-Path -Path $PowerShellObject.Required.reportDirectory -PathType Container) {
         $reportDir = $PowerShellObject.Required.reportDirectory
+
+        
+        [string] $jsonFilePath = "$($reportDir)\msgraph-sdk-mfa-report-$($fileTimeStamp).json"
+        [string] $csvFilePath = "$($reportDir)\msgraph-sdk-mfa-report-$($fileTimeStamp).csv"
+        $csvFile = [System.IO.StreamWriter] $csvFilePath
     } else {
         throw "path specified for report directory of $($PowerShellObject.Required.reportDirectory) in config file does not exist, aborting process"
     }
@@ -90,6 +97,7 @@ if ($PowerShellObject.Required.reportDirectory) {
 [bool] $blnReportSuccessful = $false
 [bool] $blnWriteToLog = $false
 [uint16] $intSMTPPort = 587
+
 
 [int] $intErrorCount = 0
 $arrStrErrors = @()
@@ -113,38 +121,113 @@ try {
 
 if ($successfullyConnected) {
 
+    $userList = @()
     $users = get-mguser -all
     foreach ($user in $users) {
-    write-host $user.UserprincipalName
+
+        $microsoftAuthenticatorAuthenticationMethod = $false
+        $phoneAuthenticationMethod = $false
+        $passwordAuthenticationMethod = $false
+        $fido2AuthenticationMethod = $false
+        $windowsHelloForBusinessAuthenticationMethod = $false
+        $emailAuthenticationMethod = $false
+        $temporaryAccessPassAuthenticationMethod = $false
+        $passwordlessMicrosoftAuthenticatorAuthenticationMethod = $false
+        $softwareOathAuthenticationMethod = $false
+
+        $mobilePhone = $false
+        $alternateMobilePhone = $false
+        $officePhone = $false
+        $microsoftAuthenticatorPush = $false
+        $softwareOneTimePasscode = $false
+
+
+
     
-    #possible values: microsoftAuthenticatorAuthenticationMethod, phoneAuthenticationMethod, passwordAuthenticationMethod, 
-    #fido2AuthenticationMethod, windowsHelloForBusinessAuthenticationMethod, emailAuthenticationMethod, temporaryAccessPassAuthenticationMethod, 
-    #passwordlessMicrosoftAuthenticatorAuthenticationMethod, softwareOathAuthenticationMethod
-    $userMFAMethods = Get-MgUserAuthenticationMethod -userid $user.Id
-    #Get-MgReportAuthenticationMethodUserRegistrationDetail -Filter "UserprincipalName eq '$($user.UserprincipalName)'"
-    #$userMFaRegistrationDetails = Get-MgReportAuthenticationMethodUserRegistrationDetail -Filter "UserprincipalName eq '$($user.UserprincipalName)'"
+        #possible values: microsoftAuthenticatorAuthenticationMethod, phoneAuthenticationMethod, passwordAuthenticationMethod, 
+        #fido2AuthenticationMethod, windowsHelloForBusinessAuthenticationMethod, emailAuthenticationMethod, temporaryAccessPassAuthenticationMethod, 
+        #passwordlessMicrosoftAuthenticatorAuthenticationMethod, softwareOathAuthenticationMethod
+        $userMFAMethods = Get-MgUserAuthenticationMethod -userid $user.Id
+        #$userMFaRegistrationDetails = Get-MgReportAuthenticationMethodUserRegistrationDetail -Filter "UserprincipalName eq '$($user.UserprincipalName)'"
 
-    #Get-MgReportAuthenticationMethodUserRegistrationDetail -Filter "UserprincipalName eq '$($user.UserprincipalName)'"
-
-    #write-host $userMFaRegistrationDetails.IsMfaRegistered
-
-    #https://docs.microsoft.com/en-us/graph/api/resources/userregistrationdetails?view=graph-rest-beta for documentation
-    #
-    $Uri = "https://graph.microsoft.com/beta/reports/authenticationMethods/userRegistrationDetails/" + $User.Id
-    $AccessMethodData = Invoke-MgGraphRequest -Uri $Uri -Method Get
-    
-    #possible values: none, mobilePhone, alternateMobilePhone, officePhone, microsoftAuthenticatorPush, 
-    #softwareOneTimePasscode, unknownFutureValue
-    write-host $AccessMethodData.isMfaRegistered
-    write-host $AccessMethodData.defaultMfaMethod
-    write-host $AccessMethodData.MethodsRegistered
-
-    foreach ($method in $userMFAMethods) {
-        foreach ($types in $method.AdditionalProperties["@odata.type"]) {
-            write-host $types
+        foreach ($method in $userMFAMethods) {
+            foreach ($types in $method.AdditionalProperties["@odata.type"]) {
+                switch ($types) {
+                    "#microsoft.graph.microsoftAuthenticatorAuthenticationMethod" {
+                        $microsoftAuthenticatorAuthenticationMethod = $true
+                    }
+                    "#microsoft.graph.phoneAuthenticationMethod" {
+                        $phoneAuthenticationMethod = $true
+                    }
+                    "#microsoft.graph.passwordAuthenticationMethod" {
+                        $passwordAuthenticationMethod = $true
+                    }
+                    "#microsoft.graph.fido2AuthenticationMethod" {
+                        $fido2AuthenticationMethod = $true
+                    }
+                    "#microsoft.graph.windowsHelloForBusinessAuthenticationMethod" {
+                        $windowsHelloForBusinessAuthenticationMethod = $true
+                    }
+                    "#microsoft.graph.emailAuthenticationMethod" {
+                        $emailAuthenticationMethod = $true
+                    }
+                    "#microsoft.graph.temporaryAccessPassAuthenticationMethod" {
+                        $temporaryAccessPassAuthenticationMethod = $true
+                    }
+                    "#microsoft.graph.passwordlessMicrosoftAuthenticatorAuthenticationMethod" {
+                     $passwordlessMicrosoftAuthenticatorAuthenticationMethod = $true
+                    }
+                    "#microsoft.graph.softwareOathAuthenticationMethod" {
+                        $softwareOathAuthenticationMethod = $true
+                    }
+                }
+            }
         }
-    }
-    write-host "****************"
+
+        #https://docs.microsoft.com/en-us/graph/api/resources/userregistrationdetails?view=graph-rest-beta for documentation
+        $Uri = "https://graph.microsoft.com/beta/reports/authenticationMethods/userRegistrationDetails/" + $User.Id
+        $AccessMethodData = Invoke-MgGraphRequest -Uri $Uri -Method Get
+    
+        #possible values: none, mobilePhone, alternateMobilePhone, officePhone, microsoftAuthenticatorPush, 
+        #softwareOneTimePasscode, unknownFutureValue
+        foreach ($methodRegistered in $AccessMethodData.MethodsRegistered) {
+            switch ($types) {
+                "mobilePhone" {
+                    $mobilePhone = $true
+                }
+                "alternateMobilePhone" {
+                    $alternateMobilePhone = $true
+                }
+                "officePhone" {
+                    $officePhone = $true
+                }
+                "microsoftAuthenticatorPush" {
+                    $microsoftAuthenticatorPush = $true
+                }
+                "softwareOneTimePasscode" {
+                    $softwareOneTimePasscode = $true
+                }
+            }
+
+        }
+
+        $userList += @{UserprincipalName = $user.UserprincipalName; microsoftAuthenticatorAuthenticationMethod = $microsoftAuthenticatorAuthenticationMethod; `
+            phoneAuthenticationMethod = $phoneAuthenticationMethod; passwordAuthenticationMethod = $passwordAuthenticationMethod; fido2AuthenticationMethod = $fido2AuthenticationMethod; `
+            windowsHelloForBusinessAuthenticationMethod = $windowsHelloForBusinessAuthenticationMethod; emailAuthenticationMethod = $emailAuthenticationMethod; `
+            temporaryAccessPassAuthenticationMethod = $temporaryAccessPassAuthenticationMethod; passwordlessMicrosoftAuthenticatorAuthenticationMethod = $passwordlessMicrosoftAuthenticatorAuthenticationMethod; `
+            softwareOathAuthenticationMethod = $softwareOathAuthenticationMethod; mobilePhone = $mobilePhone; alternateMobilePhone = $alternateMobilePhone; officePhone = $officePhone; `
+            microsoftAuthenticatorPush = $microsoftAuthenticatorPush; softwareOneTimePasscode = $softwareOneTimePasscode; isMfaRegistered = $AccessMethodData.isMfaRegistered; defaultMethod = $AccessMethodData.defaultMfaMethod }
+    } #end of loop through each user
+
+    #$userList | % { new-object PSObject -Property $_}
+
+    $userList | ConvertTo-Json -depth 100 | out-file $jsonFilePath
+
+    $csvFile.writeline("UserprincipalName,microsoftAuthenticatorAuthenticationMethod,phoneAuthenticationMethod,passwordAuthenticationMethod,fido2AuthenticationMethod,windowsHelloForBusinessAuthenticationMethod,emailAuthenticationMethod,temporaryAccessPassAuthenticationMethod,passwordlessMicrosoftAuthenticatorAuthenticationMethod,softwareOathAuthenticationMethod,mobilePhone,alternateMobilePhone,officePhone,microsoftAuthenticatorPush,softwareOneTimePasscode,isMfaRegistered,defaultMethod")
+    foreach ($item in $userList) {
+        $csvFile.writeline("$($item.UserprincipalName),$($item.microsoftAuthenticatorAuthenticationMethod),$($item.phoneAuthenticationMethod),$($item.passwordAuthenticationMethod),$($item.fido2AuthenticationMethod),$($item.windowsHelloForBusinessAuthenticationMethod),$($item.emailAuthenticationMethod),$($item.temporaryAccessPassAuthenticationMethod),$($item.passwordlessMicrosoftAuthenticatorAuthenticationMethod),$($item.softwareOathAuthenticationMethod),$($item.mobilePhone),$($item.alternateMobilePhone),$($item.officePhone),$($item.microsoftAuthenticatorPush),$($item.softwareOneTimePasscode),$($item.isMfaRegistered),$($item.defaultMethod)")
     }
 
-}
+} #end if successfully connected
+
+$csvFile.close()
