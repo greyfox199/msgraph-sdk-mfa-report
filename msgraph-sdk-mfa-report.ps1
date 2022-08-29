@@ -140,9 +140,6 @@ if ($successfullyConnected) {
         $officePhone = $false
         $microsoftAuthenticatorPush = $false
         $softwareOneTimePasscode = $false
-
-
-
     
         #possible values: microsoftAuthenticatorAuthenticationMethod, phoneAuthenticationMethod, passwordAuthenticationMethod, 
         #fido2AuthenticationMethod, windowsHelloForBusinessAuthenticationMethod, emailAuthenticationMethod, temporaryAccessPassAuthenticationMethod, 
