@@ -3,8 +3,8 @@ this utility is used to to get mfa data via the ms graph api endpoints from azur
 
 Requirements:  
 -Assumes an app registration has been created in Azure tenant with appropriate permissions and with a client secret created.  This will be used to actually make a connection to the MS graph api endpoints.   
--Assumes  "Microsoft.Graph" powershell module has been installed
--Assumes "msal.ps" powershell module has been installed
+-Assumes  "Microsoft.Graph" powershell module has been installed.   
+-Assumes "msal.ps" powershell module has been installed.   
 
 # Azure configuration
 This makes use of the MS graph api endpoints, and as such, an app registration must be created.  When creating a new registration, the only thing needed on the initial screen is a unique name.  Once it is created, the "Application (client) ID" can be obtained from the overview section.  
