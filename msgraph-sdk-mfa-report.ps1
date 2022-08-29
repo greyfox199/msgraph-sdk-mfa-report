@@ -3,7 +3,7 @@ param (
   [Parameter (Mandatory = $true)] [String]$ConfigFilePath
 )
 
-#if Posh-SSH module can't be loaded, abort process
+#if msal.ps module can't be loaded, abort process
 try {
     import-module msal.ps
 } catch {
@@ -87,19 +87,8 @@ if ($PowerShellObject.Required.reportDirectory) {
 }
 
 #set up variables
-
-
-[uint16] $intDaysToKeepReportFiles = 0
-[uint16] $intDaysToKeepLogFiles = 0
-
-[bool] $blnSendSMTPErrorReport = $false
-[bool] $blnSMTPAuthRequired = $false
-[bool] $blnReportSuccessful = $false
 [bool] $blnWriteToLog = $false
-[uint16] $intSMTPPort = 587
 
-
-[int] $intErrorCount = 0
 $arrStrErrors = @()
 
 #clear all errors before starting
@@ -215,8 +204,6 @@ if ($successfullyConnected) {
             softwareOathAuthenticationMethod = $softwareOathAuthenticationMethod; mobilePhone = $mobilePhone; alternateMobilePhone = $alternateMobilePhone; officePhone = $officePhone; `
             microsoftAuthenticatorPush = $microsoftAuthenticatorPush; softwareOneTimePasscode = $softwareOneTimePasscode; isMfaRegistered = $AccessMethodData.isMfaRegistered; defaultMethod = $AccessMethodData.defaultMfaMethod }
     } #end of loop through each user
-
-    #$userList | % { new-object PSObject -Property $_}
 
     $userList | ConvertTo-Json -depth 100 | out-file $jsonFilePath
 
