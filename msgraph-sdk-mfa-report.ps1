@@ -58,7 +58,7 @@ if ($PowerShellObject.Required.tenantID) {
     throw "tenantID does not exist in json config file, aborting process"
 }
   
-#if udm secure password file does not exist, abort process
+#if client secret secure password file does not exist, abort process
 if ($PowerShellObject.Required.clientSecretFilePath) {
     if (Test-Path -Path $PowerShellObject.Required.clientSecretFilePath -PathType Leaf) {
         $clientSecretSecure = Get-Content $PowerShellObject.Required.clientSecretFilePath | ConvertTo-SecureString
